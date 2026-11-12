@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "E:/Electronique/Meteo"
+		},
+		{
+			"path": "E:/Electronique/GoPro"
+		},
+		{
+			"name": "StationMeteo_Wifi_Lora",
+			"path": "."
+		}
+	],
+	"settings": {}
+}
