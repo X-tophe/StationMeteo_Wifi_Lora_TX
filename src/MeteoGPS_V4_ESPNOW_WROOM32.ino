@@ -39,7 +39,12 @@
 #define BME_ADDR 0x76
 
 // --- ESP-NOW : ces 3 réglages doivent être IDENTIQUES sur le récepteur ---
+// Avec la passerelle Wi-Fi, le canal doit être CELUI DE LA BOX (affiché par
+// la passerelle au démarrage). Si BOX_SSID est renseigné, l'émetteur cherche
+// la box au démarrage et prend son canal ; sinon (ou si la box n'est pas
+// captée), il utilise ESPNOW_CHANNEL.
 #define ESPNOW_CHANNEL 1
+#define BOX_SSID ""               // ex. "NomDeTaBox" ; "" = canal fixe
 #define USE_LONG_RANGE 1          // 1 = mode LR Espressif (plus de portée, débit réduit)
 #define TX_POWER WIFI_POWER_19_5dBm   // pleine puissance : OK avec l'antenne PCB du WROOM-32
 
@@ -195,10 +200,24 @@ void setupEspNow() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
 
+  uint8_t channel = ESPNOW_CHANNEL;
+  if (strlen(BOX_SSID) > 0) {
+    // Recherche de la box (avant de passer en mode LR seul)
+    int n = WiFi.scanNetworks(false, false, false, 300, 0, BOX_SSID);
+    if (n > 0) {
+      channel = WiFi.channel(0);
+      Serial.print(F("Box trouvee, canal "));
+    } else {
+      Serial.print(F("Box non captee, canal par defaut "));
+    }
+    Serial.println(channel);
+    WiFi.scanDelete();
+  }
+
 #if USE_LONG_RANGE
   esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
 #endif
-  esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);
+  esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
   WiFi.setTxPower(TX_POWER);
 
   Serial.print(F("MAC emetteur : "));
@@ -211,7 +230,7 @@ void setupEspNow() {
 
   esp_now_peer_info_t peer = {};
   memcpy(peer.peer_addr, peerMac, 6);
-  peer.channel = ESPNOW_CHANNEL;
+  peer.channel = channel;
   peer.ifidx   = WIFI_IF_STA;
   peer.encrypt = false;
 
